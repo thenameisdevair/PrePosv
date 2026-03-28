@@ -224,3 +224,97 @@ A2: <explicit answer>
 
 All findings from the reading passes and question answers feed directly into Stage 3.
 Do not generate hypotheses yet — only report what the code shows.
+
+## Stage 3 — Hypothesis Synthesis
+
+Model: Opus (high-stakes reasoning)
+
+Using all findings from Stage 2 — the four reading passes and the five question answers —
+reason over the complete picture and generate Section 5 of THREAT-MODEL.md.
+
+This is the most critical stage. Do not pattern-match to known bug types.
+Reason from this protocol's specific logic and assumptions.
+
+### Hypothesis Generation Rules
+
+Every hypothesis must contain all five components. Reject any hypothesis missing one:
+
+1. LOCATION — contract name, function name, line range if identifiable
+2. MECHANISM — the exact sequence of calls or state conditions that enables the bug
+3. PRECONDITION — what must be true for this to be exploitable
+4. WHAT BREAKS — which invariant, which asset, whose funds, what guarantee fails
+5. EXPOSURE — rough magnitude (all protocol funds | specific pool | bounded by X | dust)
+
+### Generation Logic
+
+Reason over the findings using these cross-section patterns:
+
+FROM Section 2 (asset flows):
+- For every external call that precedes a state update → reentrancy hypothesis
+- For every return value from an external contract used without validation →
+  oracle/return value manipulation hypothesis
+- For every asset movement gated by a balance check → flash loan inflation hypothesis
+- For every fee-on-transfer token path → accounting discrepancy hypothesis
+
+FROM Section 3 (roles):
+- For every privileged function with no timelock → centralization hypothesis
+- For every role that can be granted by another role → privilege escalation hypothesis
+- For every setter that changes an external address → malicious address substitution hypothesis
+
+FROM Section 4 (architecture):
+- For every delegatecall with non-fixed target → arbitrary delegatecall hypothesis
+- For every upgradeable contract → storage collision and uninitialized implementation hypothesis
+- For every factory pattern → malicious instance hypothesis
+- For every missing gap variable in upgradeable contract → storage layout corruption hypothesis
+
+FROM Stage 1 Question Answers:
+- Each answered question that revealed a vulnerability condition becomes a hypothesis
+- Each answered question that revealed an assumption in the code becomes a hypothesis
+  about what happens when that assumption is violated
+
+### Ranking
+
+Rank every hypothesis by asset exposure:
+- CRITICAL — all protocol funds at risk, or permanent loss of user funds
+- HIGH — significant subset of funds, or temporary but severe protocol disruption
+- MEDIUM — bounded loss, or requires specific precondition that limits reach
+
+### Output Format
+
+Section 5 of THREAT-MODEL.md:
+
+```
+## Section 5 — Prioritized Threat Hypotheses
+
+### Investigation Agenda
+Q1: [accounting] <question from Stage 1>
+Q2: [trust-boundaries] <question from Stage 1>
+Q3: [state-machine] <question from Stage 1>
+Q4: [transaction-ordering] <question from Stage 1>
+Q5: [arithmetic] <question from Stage 1>
+
+### CRITICAL
+
+**H1: <short title>**
+- Location: <contract> → <function> (<line range if known>)
+- Mechanism: <exact sequence of calls or state conditions>
+- Precondition: <what must be true>
+- What breaks: <invariant, asset, guarantee>
+- Exposure: <magnitude>
+
+[repeat for each CRITICAL hypothesis]
+
+### HIGH
+
+**H2: <short title>**
+[same structure]
+
+### MEDIUM
+
+**H3: <short title>**
+[same structure]
+```
+
+### Constraint
+Do not generate vague hypotheses. If a hypothesis cannot be stated with all five components
+from reading the code, it does not belong in Section 5 — it belongs in Section 6 as a gap.
