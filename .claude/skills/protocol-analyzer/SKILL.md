@@ -210,19 +210,46 @@ Target: proxy patterns, delegatecall, storage layout, factory patterns
 
 Output: Section 4 — Architectural Risk Flags (short bullet list, factual, file + line references)
 
+### Reading Pass 5 — Dynamic Question Investigation
+Target: the specific functions, variables, and logic each question references
+
+For each of the 5 questions from Stage 1, perform a dedicated investigation:
+- Identify every contract, function, and state variable the question references
+- Read those functions in full — not grep snippets, full function bodies
+- Trace the execution path the question is probing end to end
+- Follow every internal call within that path
+- Note every assumption the code makes along that path
+- Note every condition that could violate those assumptions
+
+This pass is not structured — it follows the question wherever the code leads.
+The only rule: do not stop reading until the question can be answered with
+a specific code reference (contract, function, line).
+
 ### Question Answering
-After all four reading passes, explicitly answer each of the 5 questions from Stage 1.
+After Reading Pass 5, explicitly answer each question.
 Format:
 ```
 Q1: [accounting] <question>
-A1: <explicit answer with contract name, function name, and relevant code reference>
+A1: <explicit answer — contract name, function name, line reference,
+    what the code does, what assumption it makes, what happens if violated>
 
 Q2: [trust-boundaries] <question>
-A2: <explicit answer>
-...
+A2: <same structure>
+
+Q3: [state-machine] <question>
+A3: <same structure>
+
+Q4: [transaction-ordering] <question>
+A4: <same structure>
+
+Q5: [arithmetic] <question>
+A5: <same structure>
 ```
 
-All findings from the reading passes and question answers feed directly into Stage 3.
+If a question cannot be answered from the codebase alone, mark it:
+A?: UNANSWERABLE STATICALLY — moved to Section 6 coverage gaps.
+
+All findings from all five passes and all question answers feed into Stage 3.
 Do not generate hypotheses yet — only report what the code shows.
 
 ## Stage 3 — Hypothesis Synthesis
