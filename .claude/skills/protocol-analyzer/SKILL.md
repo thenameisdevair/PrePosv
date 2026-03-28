@@ -65,3 +65,60 @@ Signals to read for classification:
 - Event emissions: what the protocol considers meaningful state changes
 - External protocol imports: Aave, Uniswap, Chainlink integrations reveal protocol category
 - README.md if present — read it but verify every claim against code
+
+## Stage 1 — Dynamic Question Generation
+
+Using the classification output from Stage 0, generate exactly 5 protocol-specific
+probing questions. These questions drive the entire investigation in Stage 2.
+
+### The Question Generation Prompt
+Reason over the classification output using the following framework:
+
+```
+You are a senior smart contract auditor with deep expertise in DeFi protocol security.
+
+You have classified this protocol:
+PROTOCOL_TYPE: {PROTOCOL_TYPE}
+HYBRID_COMPONENTS: {HYBRID_COMPONENTS}
+CORE_MECHANISM: {CORE_MECHANISM}
+KEY_CONTRACTS: {KEY_CONTRACTS}
+
+Generate exactly 5 questions that probe the most critical, non-obvious failure points
+specific to this protocol's design and mechanism.
+
+Rules:
+- Each question must be answerable by reading the codebase
+- Each question must target a different failure domain from this list:
+  [accounting | trust-boundaries | state-machine | transaction-ordering | arithmetic]
+- Questions must be specific to this protocol's actual mechanism — not generic
+- Frame each question around where this protocol's specific assumptions can break
+- No generic questions like "is there reentrancy" — name the specific functions,
+  mechanisms, and conditions relevant to this protocol
+- Each question should expose a failure mode that would result in loss of funds,
+  loss of protocol integrity, or violation of a core invariant
+
+Output format:
+Q1: [accounting] <question>
+Q2: [trust-boundaries] <question>
+Q3: [state-machine] <question>
+Q4: [transaction-ordering] <question>
+Q5: [arithmetic] <question>
+```
+
+### Output
+Store the 5 generated questions. They will:
+1. Guide the reading passes in Stage 2
+2. Appear in THREAT-MODEL.md Section 5 as the investigation agenda
+3. Each question must be answered explicitly before Stage 3 begins
+
+Display the questions to the user before proceeding:
+```
+INVESTIGATION AGENDA — 5 PROTOCOL-SPECIFIC QUESTIONS:
+Q1: [accounting] <question>
+Q2: [trust-boundaries] <question>
+Q3: [state-machine] <question>
+Q4: [transaction-ordering] <question>
+Q5: [arithmetic] <question>
+
+Proceeding to Stage 2 — Investigation...
+```
