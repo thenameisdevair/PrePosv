@@ -122,3 +122,105 @@ Q5: [arithmetic] <question>
 
 Proceeding to Stage 2 — Investigation...
 ```
+
+## Stage 2 — Investigation
+
+Model: Sonnet (mechanical reading passes)
+
+Using the 5 questions from Stage 1 as the investigation agenda, perform targeted reading
+passes across the core file set. Simultaneously populate Sections 1-4 of THREAT-MODEL.md.
+Answer every question explicitly before Stage 3 begins.
+
+### Reading Pass 1 — Protocol Fingerprint (Section 1)
+Target: README.md, entry/exit functions, event definitions
+
+- Read README.md. Extract the protocol's own description. Flag any claim that
+  contradicts what the code actually does.
+- Grep for: `payable`, `deposit`, `borrow`, `mint`, `stake`, `swap`
+  → these are value entry points. For each: who calls it, what asset enters, what is returned
+- Grep for: `withdraw`, `redeem`, `claim`, `exit`, `repay`, `unstake`
+  → these are value exit points. For each: who calls it, what asset exits, under what condition
+- Grep for: `event ` declarations
+  → list every event. The event set reveals what the protocol considers meaningful state changes
+- From the above: identify all actors (depositor, liquidator, keeper, LP, guardian, etc.)
+- From the above: identify all external protocol dependencies (Aave, Uniswap, Chainlink, etc.)
+
+Output: Section 1 — Protocol Fingerprint
+
+### Reading Pass 2 — Asset & Trust Boundary Map (Section 2)
+Target: token interactions, external calls, constructor arguments
+
+- Grep for: `IERC20`, `ERC20`, `SafeERC20`, `ERC721`, `ERC1155`
+  → every asset type the protocol touches
+- Grep for: `.transfer(`, `.transferFrom(`, `.safeTransfer(`, `.safeTransferFrom(`, `.call{value:`
+  → every asset movement. For each: caller, condition, recipient, amount source
+- Grep for: `interface I` declarations and every external call made to them
+  → every trust boundary. For each: what function is called, what is done with the return value
+- Grep for: constructor arguments and immutable/constant addresses
+  → these are hardcoded trust assumptions
+- Grep for: `setOracle`, `setPool`, `setRouter`, or any setter that changes an external address
+  → these are runtime trust assumptions that can be changed
+
+For each trust boundary output:
+```
+[ASSET FLOW] source → function → destination | condition
+[EXTERNAL TRUST] contract → function called → how return value is used
+```
+
+Output: Section 2 — Asset & Trust Boundary Map
+
+### Reading Pass 3 — Privileged Role Inventory (Section 3)
+Target: access control declarations, modifiers, role-gated functions
+
+- Grep for: `Ownable`, `AccessControl`, `onlyOwner`, `onlyRole`, `onlyAdmin`
+  → identifies the permission system in use
+- Grep for: `bytes32.*ROLE`, `keccak256.*ROLE`
+  → enumerates all named roles
+- For each role found: grep the modifier or role name across all files
+  → list every function gated by this role
+- For each gated function: read what it does
+  → not just the name — the actual state changes or asset movements it enables
+- Grep for: `TimelockController`, `timelock`, `delay`, `eta`
+  → determines if privileged actions are delayed or immediate
+- Grep for: `transferOwnership`, `grantRole`, `revokeRole`, `renounceRole`
+  → who controls role management and under what conditions
+
+For each role reason through: if this role calls every function it controls in the worst
+possible sequence — what is the maximum damage? That reasoning becomes the threat statement.
+
+Output: Section 3 — Privileged Role Inventory
+
+### Reading Pass 4 — Architectural Risk Flags (Section 4)
+Target: proxy patterns, delegatecall, storage layout, factory patterns
+
+- Grep for: `delegatecall`
+  → if present: where, with what target, is the target controllable
+- Grep for: `Proxy`, `Upgradeable`, `initialize`, `_implementation`, `UUPS`, `Transparent`, `Beacon`
+  → identify proxy pattern. Check if initialize() has initializer modifier guard
+- Grep for: `assembly`
+  → read every assembly block. Flag any direct storage slot manipulation
+- Grep for: `uint256[` in storage declarations
+  → gap variables signal upgrade-awareness. Their absence in upgradeable contracts is a flag
+- Grep for: `CREATE2`, `clone`, `cloneDeterministic`, `Clones`
+  → factory patterns. Who calls the factory, what bytecode is deployed
+- Check inheritance chain of every KEY_CONTRACT
+  → does any contract inherit from both upgradeable and non-upgradeable versions of the same base
+- Grep for: `block.chainid`, `LayerZero`, `Wormhole`, `Axelar`, `bridge`
+  → cross-chain components
+
+Output: Section 4 — Architectural Risk Flags (short bullet list, factual, file + line references)
+
+### Question Answering
+After all four reading passes, explicitly answer each of the 5 questions from Stage 1.
+Format:
+```
+Q1: [accounting] <question>
+A1: <explicit answer with contract name, function name, and relevant code reference>
+
+Q2: [trust-boundaries] <question>
+A2: <explicit answer>
+...
+```
+
+All findings from the reading passes and question answers feed directly into Stage 3.
+Do not generate hypotheses yet — only report what the code shows.
