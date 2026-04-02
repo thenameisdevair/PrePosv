@@ -6,7 +6,7 @@ description: Pre-audit threat modeling skill for Solidity protocol repositories.
              maps asset flows and trust boundaries, identifies architectural risks,
              and produces a prioritized THREAT-MODEL.md for use as pashov auditor context.
 allowed-tools: Read, Write, Bash, Glob, Grep
-model: claude-opus-4-6
+model: claude-sonnet-4-6
 ---
 
 ## Banner
@@ -24,6 +24,8 @@ Pre-Audit Threat Modeling — optimized for pashov solidity-auditor
 ```
 
 ## Stage 0 — Scope Filtering & Classification
+
+Model: Sonnet (pattern matching — no deep reasoning required)
 
 Before reading any contract, establish what to read.
 
@@ -81,6 +83,8 @@ Signals to read for classification:
 - README.md if present — read it but verify every claim against code
 
 ## Stage 1 — Dynamic Question Generation
+
+Model: Sonnet (structured reasoning from classification output)
 
 Using the classification output from Stage 0, generate exactly 5 protocol-specific
 probing questions. These questions drive the entire investigation in Stage 2.
@@ -268,7 +272,10 @@ Do not generate hypotheses yet — only report what the code shows.
 
 ## Stage 3 — Hypothesis Synthesis
 
-Model: Opus (high-stakes reasoning)
+Model: Opus (high-stakes reasoning — use `claude-opus-4-6` for this stage only)
+
+⚠️ This is the only stage that requires Opus. All other stages run on Sonnet.
+Invoke this stage as a subagent with model: claude-opus-4-6.
 
 Using all findings from Stage 2 — the four reading passes and the five question answers —
 reason over the complete picture and generate Section 5 of THREAT-MODEL.md.
